@@ -64,13 +64,12 @@ observation=임상관찰,   prescription=처방,      surgery=수술
 - surgery.csv : 지역병원코드, 지역병원코드(코드명), 연구내원번호, 연구등록번호, 성별, 성별(코드명), 생년월, 수술일자, 수술시작일시, 주수술과주치의ID, 
                 주수술과주치의ID(코드명), 수술코드, 수술코드(코드명), 수술명(입력), ICD-9CM 코드, ICD-9CM 코드(코드명), 수술일련번호, real, not
 
-
 '''
 
 
-base_dir = 'C:/Users/User5/Desktop/github/YS_labelling/'
+base_dir = '/Users/kimhyungjun/Documents/github/Save_U_retrospective/YS_labelling/'
 date = '220217/'
-dst_dir = base_dir + date + 'preprocessed_data/'
+dst_dir = base_dir + 'preprocessed_data/' + date 
 
 
 # icustays csv file
@@ -83,117 +82,181 @@ dst_dir = base_dir + date + 'preprocessed_data/'
 # Observation csv file
 observation_df = pd.read_csv(base_dir + 'origin_data/' + date + 'observation.csv', index_col=0, encoding='cp949')
 obs_result = observation_df[['real','not', '연구등록번호', '임상관찰코드', '임상관찰코드(코드명)', '기록실시일시', '측정값']]
+obs_result.columns = ['pat_id', 'study_id', 'study_number', 'item_code', 'item_name', 'charttime', 'value']
 
 # lab.csv & lab2.csv & labtime.csv
 labtime_df = pd.read_csv(base_dir + 'origin_data/' + date + 'labtime.csv', index_col=0, encoding='cp949')
 labtime_df = labtime_df[['real', 'not', '검체번호',  '검체채취일시']]
+labtime_df.columns = ['pat_id', 'study_id', 'sample_number', 'charttime']
+
 # original LAB results data input
 lab_df = pd.read_csv(base_dir + 'origin_data/' + date +  'lab.csv', index_col=0, encoding='cp949')
 lab_df = lab_df[['real', 'not', '연구등록번호', '처방코드', '처방코드(코드명)', '수치결과(수치)', '검체번호' ]]
+lab_df.columns = ['pat_id', 'study_id', 'study_number', 'item_code', 'item_name', 'value', 'sample_number']
+
 lab2_df = pd.read_csv(base_dir + 'origin_data/' + date + 'lab2.csv', index_col=0, encoding='cp949')
 lab2_df = lab2_df[['real', 'not', '연구등록번호', '처방코드', '처방코드(코드명)', '수치결과(수치)', '검체번호']]
+lab2_df.columns = ['pat_id', 'study_id', 'study_number', 'item_code', 'item_name', 'value', 'sample_number']
+
 # LAB + lab_charttime merge
-lab1 = pd.merge(lab_df, labtime_df, on=['검체번호', 'real', 'not'])
-lab2 = pd.merge(lab2_df, labtime_df, on=['검체번호', 'real', 'not'])
+lab1 = pd.merge(lab_df, labtime_df, on=['sample_number', 'pat_id', 'study_id'])
+lab2 = pd.merge(lab2_df, labtime_df, on=['sample_number', 'pat_id', 'study_id'])
 # LAB1 + LAB2 concat
-lab_result = pd.concat([lab1, lab2], axis=0).sort_values(by=['real', '검체채취일시'])
+lab_result = pd.concat([lab1, lab2], axis=0).sort_values(by=['pat_id', 'charttime'])
+
 
 # Prescription csv file
 prescription_df = pd.read_csv(base_dir + 'origin_data/' + date + 'prescription.csv', index_col=0, encoding='cp949')
-pres_result = prescription_df[['real','not', '연구등록번호', '처방코드', '처방코드(코드명)', '시행일자']]
+pres_result = prescription_df[['real','not', '연구등록번호', '처방코드', '처방코드(코드명)', '시행일시']]
+pres_result.columns = ['pat_id', 'study_id', 'study_number', 'item_code', 'item_name', 'charttime']
 
 # Diagnosis csv file
 diagnosis_df = pd.read_csv(base_dir + 'origin_data/' + date + 'diagnosis.csv', index_col=0, encoding='cp949')
 diag_result = diagnosis_df[['real','not', '연구등록번호', '진료일자', '진단코드', '진단코드(코드명)', 'ICD-10 코드']]
+diag_result.columns = ['pat_id', 'study_id', 'study_number', 'diag_date', 'diag_code', 'diag_name', 'ICD10']
+
+
+surgery_df = pd.read_csv(base_dir + 'origin_data/' + date + 'surgery.csv', index_col=0, encoding='cp949')
+surg_result = surgery_df[['real','not', '연구등록번호', '수술시작일시', '수술코드', '수술코드(코드명)', 'ICD-9CM 코드']]
+surg_result.columns = ['pat_id', 'study_id', 'study_number', 'starttime', 'surgery_code', 'surgery_name', 'ICD9']
 
 ''' ========================================================================================================= '''
-
 
 
 
 ''' =================================== Search Variables for Renal Failure =================================== '''
 
 # Creatinine (lab.csv : 처방코드)
-Cr = lab_result[lab_result['처방코드'].isin(['C375002', '5B001_19', '5B00129' ])].drop_duplicates()
+Cr = lab_result[lab_result['item_code'].isin(['C375002', '5B001_19', '5B00129' ])].drop_duplicates()
+Cr['item'] = 'Creatinine'
+Cr.to_csv(dst_dir + 'Cr.csv', encoding='cp949')
 print('========== Cr ==========')
 print(Cr)
 
-# pO2 (lab.csv : 처방코드)
-pO2 = lab_result[lab_result['처방코드'].isin(['L600103202'])].drop_duplicates()
-print('========== pO2 ==========')
-print(pO2)
-
-# pO2 (lab.csv : 처방코드)
-pCO2 = lab_result[lab_result['처방코드'].isin(['L000102202'])].drop_duplicates()
-print('========== pCO2 ==========')
-print(pCO2)
-
-# PF_ratio (lab.csv : 처방코드)
-pf_ratio = lab_result[lab_result['처방코드'].isin(['L600115202'])].drop_duplicates()
-print('========== PF_ratio ==========')
-print(pf_ratio)
-
 # pH (lab.csv : 처방코드)
-pH = lab_result[lab_result['처방코드'].isin(['L000101202', 'L008901201', 'L601007209', 'L600101202'])].drop_duplicates()
+pH = lab_result[lab_result['item_code'].isin(['L000101202', 'L008901201', 'L601007209', 'L600101202'])].drop_duplicates()
+pH['item'] = 'pH'
+pH.to_csv(dst_dir + 'pH.csv', encoding='cp949')
 print('========== pH ==========')
 print(pH)
 
 # potassium (lab.csv : 처방코드)
-potassium = lab_result[lab_result['처방코드'].isin(['C379204'])].drop_duplicates()
+potassium = lab_result[lab_result['item_code'].isin(['C379204'])].drop_duplicates()
+potassium['item'] = 'potassium'
+potassium.to_csv(dst_dir + 'potassium.csv', encoding='cp949')
 print('========== potassium ==========')
 print(potassium)
 
 # bun (lab.csv : 처방코드)
-bun = lab_result[lab_result['처방코드'].isin(['C373001'])].drop_duplicates()
+bun = lab_result[lab_result['item_code'].isin(['C373001'])].drop_duplicates()
+bun['item'] = 'BUN'
+bun.to_csv(dst_dir + 'bun.csv', encoding='cp949')
 print('========== bun ==========')
 print(bun)
 
 # U/O (observation.csv : 임상관찰코드)
-uo = obs_result[obs_result['임상관찰코드'].isin(['4001600011'])].drop_duplicates()
+uo = obs_result[obs_result['item_code'].isin(['4001600011'])].drop_duplicates()
+uo['item'] = 'Urineoutput'
+uo.to_csv(dst_dir + 'uo.csv', encoding='cp949')
 print('========== Urine Output ==========')
 print(uo)
 
 # Hemodialysis (prescription.csv : 처방코드)
-hemodialysis = pres_result[pres_result['처방코드'].isin(['YO7020B_004', 'V10P0021', 'V10P0045', 'V10P0022', 'V10P0026', 'V09G0057', 'V09G0059', 'V09G0246'])].drop_duplicates()
+hemodialysis = pres_result[pres_result['item_code'].isin(['YO7020B_004', 'V10P0021', 'V10P0045', 'V10P0022', 'V10P0026', 'V09G0057', 'V09G0059', 'V09G0246'])].drop_duplicates()
+hemodialysis['value'] = np.nan
+hemodialysis['item'] = 'hemodialysis'
+hemodialysis.to_csv(dst_dir + 'hemodialysis.csv', encoding='cp949')
 print('========== Hemodialysis ==========')
 print(hemodialysis)
 
 # ESRD + CKD (diagnosis.csv : 진단코드)
-esrd_ckd = diag_result[diag_result['진단코드'].isin(['DI024743', 'DI010115', 'DI050025', 'DI050026', 'DI050027', 'DI050028', 'DI050029', 'DI032358', 'DI045702', 'DI010107', 'DI010114', 'DI005316'])].drop_duplicates()
+esrd_ckd = diag_result[diag_result['diag_code'].isin(['DI024743', 'DI010115', 'DI050025', 'DI050026', 'DI050027', 'DI050028', 'DI050029', 'DI032358', 'DI045702', 'DI010107', 'DI010114', 'DI005316'])].drop_duplicates()
+esrd_ckd['item'] = 'ESRD_CKD'
 print('========== ESRD + CKD ==========')
 print(esrd_ckd)
 
 
 
 
+
 ''' ================ Variables for Respiratory Failure ============'''
 
+# O2 saturation - SpO2 (observation.csv : 관찰코드)
+spo2 = obs_result[obs_result['item_code'].isin(['2001100049'])].drop_duplicates()
+spo2 = spo2[['pat_id', 'study_id', 'item_code', 'item_name', 'charttime', 'value']]
+spo2['item'] = 'spo2'
+spo2.to_csv(dst_dir + 'spo2.csv', encoding='cp949')
+print('========== SpO2 ==========')
+print(spo2)
+
+# pO2 (lab.csv : 처방코드)
+pO2 = lab_result[lab_result['item_code'].isin(['L600103202'])].drop_duplicates()
+pO2 = pO2[['pat_id', 'study_id', 'item_code', 'item_name', 'charttime', 'value']]
+pO2['item'] = 'pO2'
+pO2.to_csv(dst_dir + 'pO2.csv', encoding='cp949')
+print('========== pO2 ==========')
+print(pO2)
+
+# pO2 (lab.csv : 처방코드)
+pCO2 = lab_result[lab_result['item_code'].isin(['L000102202'])].drop_duplicates()
+pCO2 = pCO2[['pat_id', 'study_id', 'item_code', 'item_name', 'charttime', 'value']]
+pCO2['item'] = 'pCO2'
+pCO2.to_csv(dst_dir + 'pCO2.csv', encoding='cp949')
+print('========== pCO2 ==========')
+print(pCO2)
+
+# PF_ratio (lab.csv : 처방코드)
+pf_ratio = lab_result[lab_result['item_code'].isin(['L600115202'])].drop_duplicates()
+pf_ratio = pf_ratio[['pat_id', 'study_id', 'item_code', 'item_name', 'charttime', 'value']]
+pf_ratio['item'] = 'PF_ratio'
+pf_ratio.to_csv(dst_dir + 'pf_ratio.csv', encoding='cp949')
+print('========== PF_ratio ==========')
+print(pf_ratio)
+
+# Intubation (prescription.csv: 처방코드)
+intubation = pres_result[pres_result['item_code'].isin(['M5859_001', 'LX001_002'])].drop_duplicates()
+intubation = intubation[['pat_id', 'study_id', 'item_code', 'item_name', 'charttime']]
+intubation['value'] = np.nan
+intubation['item'] = 'intubation'
+intubation.to_csv(dst_dir + 'intubation.csv', encoding='cp949')
+print('========== Intubation ==========')
+print(intubation)
+
+# Mechanical Ventilator (Observation.csv: 임상관찰코드)
+ventilator = obs_result[obs_result['item_code'].isin(['5003800023', '5003800009', '5003800010', '5003800006', '5003800008', '5003800005',
+                                                    '5003800013', '5003800014', '5003800011', '5003800001', '5003800004', '5003800028', 
+                                                    '5003800027', '5003800007', '5003800026', '5003800012', '5003800025', '5003800030',
+                                                    '5003800029', '5003800024', '5003800003', '5003800035', '5003800037'])].drop_duplicates()
+ventilator = ventilator[['pat_id', 'study_id', 'item_code', 'item_name', 'charttime', 'value']]
+ventilator['item'] = 'ventilator'
+ventilator.to_csv(dst_dir + 'ventilator.csv', encoding='cp949')
+print('========== Ventilator ==========')
+print(ventilator)
+
+# Extubatoin (prescription.csv : 처방코드)
+extubation = pres_result[pres_result['item_code'].isin(['5P002_036'])].drop_duplicates()
+extubation = extubation[['pat_id', 'study_id', 'item_code', 'item_name', 'charttime']]
+extubation['value'] = np.nan
+extubation['item'] = 'extubation'
+extubation.to_csv(dst_dir + 'extubation.csv', encoding='cp949')
+print('========== Extubation ==========')
+print(extubation)
+
+# ================================================= 추출된 변수 DataFrame 으로 합치기 =================================================
+# DataFrame 1: Observation + LAB   ['pat_id', 'study_id', 'item_code', 'item_name', 'charttime', 'value', 'item']
+#              (Cr, pH, potassium, bun, U/O, SpO2, pO2, pCO2, PF_ratio, Intubation, Extubation, Ventilator_setting)
+# DataFrame 2: Hemodialysis    ['pat_id', 'study_id', 'diag_code', 'diag_name', 'diag_date', 'ICD10', 'item']
+# DataFrame 3: Surgery    ['pat_id', 'study_id',  'surgery_code', 'surgery_name', 'starttime', 'ICD9', 'item']
+# =====================================================================================================================================
+
+# DataFrame 1
+
+df1 = pd.concat([Cr, pH, potassium, bun, uo, hemodialysis, spo2, pO2, pCO2, pf_ratio, intubation, extubation, ventilator], axis=0)
 
 
 
+# Dataframe 2
+esrd_ckd
 
-
-
-
-
-
-
-
-
-
-# diagnosis csv file
-# diagnosis_df = pd.read_csv(base_dir + date + 'origin_data/diagnosis.csv', index_col=0, encoding='cp949')
-
-# drugtime csv file
-# drugtime_df = pd.read_csv(base_dir + date + 'origin_data/drugtime.csv', index_col=0, encoding='cp949')
-
-
-# prescription csv file
-# prescription_df = pd.read_csv(base_dir + date + 'origin_data/prescription.csv', index_col=0, encoding='cp949')
-
-
-# surgery csv file
-# surgery_df = pd.read_csv(base_dir + date + 'data/surgery.csv', index_col=0, encoding='cp949')
-
-
-
+# DataFrame 3
+surgery

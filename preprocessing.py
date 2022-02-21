@@ -103,7 +103,7 @@ lab1 = pd.merge(lab_df, labtime_df, on=['sample_number', 'pat_id', 'study_id'])
 lab2 = pd.merge(lab2_df, labtime_df, on=['sample_number', 'pat_id', 'study_id'])
 # LAB1 + LAB2 concat
 lab_result = pd.concat([lab1, lab2], axis=0).sort_values(by=['pat_id', 'charttime'])
-
+lab_result = lab_result[['pat_id', 'study_id', 'item_code', 'item_name', 'charttime', 'value']]
 
 # Prescription csv file
 prescription_df = pd.read_csv(base_dir + 'origin_data/' + date + 'prescription.csv', index_col=0, encoding='cp949')
@@ -129,35 +129,35 @@ surg_result.columns = ['pat_id', 'study_id', 'study_number', 'starttime', 'surge
 # Creatinine (lab.csv : 처방코드)
 Cr = lab_result[lab_result['item_code'].isin(['C375002', '5B001_19', '5B00129' ])].drop_duplicates()
 Cr['item'] = 'Creatinine'
-Cr.to_csv(dst_dir + 'Cr.csv', encoding='cp949')
+Cr.to_csv(dst_dir + 'variables/Cr.csv', encoding='cp949')
 print('========== Cr ==========')
 print(Cr)
 
 # pH (lab.csv : 처방코드)
 pH = lab_result[lab_result['item_code'].isin(['L000101202', 'L008901201', 'L601007209', 'L600101202'])].drop_duplicates()
 pH['item'] = 'pH'
-pH.to_csv(dst_dir + 'pH.csv', encoding='cp949')
+pH.to_csv(dst_dir + 'variables/pH.csv', encoding='cp949')
 print('========== pH ==========')
 print(pH)
 
 # potassium (lab.csv : 처방코드)
 potassium = lab_result[lab_result['item_code'].isin(['C379204'])].drop_duplicates()
 potassium['item'] = 'potassium'
-potassium.to_csv(dst_dir + 'potassium.csv', encoding='cp949')
+potassium.to_csv(dst_dir + 'variables/potassium.csv', encoding='cp949')
 print('========== potassium ==========')
 print(potassium)
 
 # bun (lab.csv : 처방코드)
 bun = lab_result[lab_result['item_code'].isin(['C373001'])].drop_duplicates()
 bun['item'] = 'BUN'
-bun.to_csv(dst_dir + 'bun.csv', encoding='cp949')
+bun.to_csv(dst_dir + 'variables/bun.csv', encoding='cp949')
 print('========== bun ==========')
 print(bun)
 
 # U/O (observation.csv : 임상관찰코드)
 uo = obs_result[obs_result['item_code'].isin(['4001600011'])].drop_duplicates()
 uo['item'] = 'Urineoutput'
-uo.to_csv(dst_dir + 'uo.csv', encoding='cp949')
+uo.to_csv(dst_dir + 'variables/uo.csv', encoding='cp949')
 print('========== Urine Output ==========')
 print(uo)
 
@@ -165,13 +165,14 @@ print(uo)
 hemodialysis = pres_result[pres_result['item_code'].isin(['YO7020B_004', 'V10P0021', 'V10P0045', 'V10P0022', 'V10P0026', 'V09G0057', 'V09G0059', 'V09G0246'])].drop_duplicates()
 hemodialysis['value'] = np.nan
 hemodialysis['item'] = 'hemodialysis'
-hemodialysis.to_csv(dst_dir + 'hemodialysis.csv', encoding='cp949')
+hemodialysis.to_csv(dst_dir + 'variables/hemodialysis.csv', encoding='cp949')
 print('========== Hemodialysis ==========')
 print(hemodialysis)
 
 # ESRD + CKD (diagnosis.csv : 진단코드)
 esrd_ckd = diag_result[diag_result['diag_code'].isin(['DI024743', 'DI010115', 'DI050025', 'DI050026', 'DI050027', 'DI050028', 'DI050029', 'DI032358', 'DI045702', 'DI010107', 'DI010114', 'DI005316'])].drop_duplicates()
 esrd_ckd['item'] = 'ESRD_CKD'
+esrd_ckd.to_csv(dst_dir + 'variables/hemodialysis.csv', encoding='cp949')
 print('========== ESRD + CKD ==========')
 print(esrd_ckd)
 
@@ -185,7 +186,7 @@ print(esrd_ckd)
 spo2 = obs_result[obs_result['item_code'].isin(['2001100049'])].drop_duplicates()
 spo2 = spo2[['pat_id', 'study_id', 'item_code', 'item_name', 'charttime', 'value']]
 spo2['item'] = 'spo2'
-spo2.to_csv(dst_dir + 'spo2.csv', encoding='cp949')
+spo2.to_csv(dst_dir + 'variables/spo2.csv', encoding='cp949')
 print('========== SpO2 ==========')
 print(spo2)
 
@@ -193,7 +194,7 @@ print(spo2)
 pO2 = lab_result[lab_result['item_code'].isin(['L600103202'])].drop_duplicates()
 pO2 = pO2[['pat_id', 'study_id', 'item_code', 'item_name', 'charttime', 'value']]
 pO2['item'] = 'pO2'
-pO2.to_csv(dst_dir + 'pO2.csv', encoding='cp949')
+pO2.to_csv(dst_dir + 'variables/pO2.csv', encoding='cp949')
 print('========== pO2 ==========')
 print(pO2)
 
@@ -201,7 +202,7 @@ print(pO2)
 pCO2 = lab_result[lab_result['item_code'].isin(['L000102202'])].drop_duplicates()
 pCO2 = pCO2[['pat_id', 'study_id', 'item_code', 'item_name', 'charttime', 'value']]
 pCO2['item'] = 'pCO2'
-pCO2.to_csv(dst_dir + 'pCO2.csv', encoding='cp949')
+pCO2.to_csv(dst_dir + 'variables/pCO2.csv', encoding='cp949')
 print('========== pCO2 ==========')
 print(pCO2)
 
@@ -209,7 +210,7 @@ print(pCO2)
 pf_ratio = lab_result[lab_result['item_code'].isin(['L600115202'])].drop_duplicates()
 pf_ratio = pf_ratio[['pat_id', 'study_id', 'item_code', 'item_name', 'charttime', 'value']]
 pf_ratio['item'] = 'PF_ratio'
-pf_ratio.to_csv(dst_dir + 'pf_ratio.csv', encoding='cp949')
+pf_ratio.to_csv(dst_dir + 'variables/pf_ratio.csv', encoding='cp949')
 print('========== PF_ratio ==========')
 print(pf_ratio)
 
@@ -218,7 +219,7 @@ intubation = pres_result[pres_result['item_code'].isin(['M5859_001', 'LX001_002'
 intubation = intubation[['pat_id', 'study_id', 'item_code', 'item_name', 'charttime']]
 intubation['value'] = np.nan
 intubation['item'] = 'intubation'
-intubation.to_csv(dst_dir + 'intubation.csv', encoding='cp949')
+intubation.to_csv(dst_dir + 'variables/intubation.csv', encoding='cp949')
 print('========== Intubation ==========')
 print(intubation)
 
@@ -229,7 +230,7 @@ ventilator = obs_result[obs_result['item_code'].isin(['5003800023', '5003800009'
                                                     '5003800029', '5003800024', '5003800003', '5003800035', '5003800037'])].drop_duplicates()
 ventilator = ventilator[['pat_id', 'study_id', 'item_code', 'item_name', 'charttime', 'value']]
 ventilator['item'] = 'ventilator'
-ventilator.to_csv(dst_dir + 'ventilator.csv', encoding='cp949')
+ventilator.to_csv(dst_dir + 'variables/ventilator.csv', encoding='cp949')
 print('========== Ventilator ==========')
 print(ventilator)
 
@@ -238,7 +239,7 @@ extubation = pres_result[pres_result['item_code'].isin(['5P002_036'])].drop_dupl
 extubation = extubation[['pat_id', 'study_id', 'item_code', 'item_name', 'charttime']]
 extubation['value'] = np.nan
 extubation['item'] = 'extubation'
-extubation.to_csv(dst_dir + 'extubation.csv', encoding='cp949')
+extubation.to_csv(dst_dir + 'variables/extubation.csv', encoding='cp949')
 print('========== Extubation ==========')
 print(extubation)
 
@@ -252,11 +253,11 @@ print(extubation)
 # DataFrame 1
 
 df1 = pd.concat([Cr, pH, potassium, bun, uo, hemodialysis, spo2, pO2, pCO2, pf_ratio, intubation, extubation, ventilator], axis=0)
-
+df1.to_csv(dst_dir + 'total_result.csv', encoding='cp949')
 
 
 # Dataframe 2
-esrd_ckd
+df2 = esrd_ckd.to_csv(dst_dir + 'esrd_result.csv', encoding='cp949')
 
 # DataFrame 3
-surgery
+df3 = surg_result.to_csv(dst_dir + 'surg_result.csv', encoding='cp949')

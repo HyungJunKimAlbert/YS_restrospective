@@ -1,10 +1,7 @@
-from doctest import DONT_ACCEPT_TRUE_FOR_1
 import pandas as pd
 import numpy as np
-from sklearn.manifold import locally_linear_embedding
 import warnings
 warnings.filterwarnings('ignore')
-
 
 
 ''' Table mapping
@@ -64,20 +61,22 @@ observation=임상관찰,   prescription=처방,      surgery=수술
 - surgery.csv : 지역병원코드, 지역병원코드(코드명), 연구내원번호, 연구등록번호, 성별, 성별(코드명), 생년월, 수술일자, 수술시작일시, 주수술과주치의ID, 
                 주수술과주치의ID(코드명), 수술코드, 수술코드(코드명), 수술명(입력), ICD-9CM 코드, ICD-9CM 코드(코드명), 수술일련번호, real, not
 
+
 '''
 
 
-base_dir = '/Users/kimhyungjun/Documents/github/Save_U_retrospective/YS_labelling/'
+base_dir = 'C:/Users/User5/Desktop/github/YS_labelling/'
 date = '220217/'
-dst_dir = base_dir + 'preprocessed_data/' + date 
+dst_dir = base_dir + 'preprocessed_data/' + date
 
 
-# icustays csv file
-# icustays_df = pd.read_csv(base_dir + 'origin_data/' + date + 'icustays.csv', index_col=0, encoding='cp949')
-# result = icustays_df[['real','not', '연구등록번호', '전입일시', '전출일시', '측정값', '성별', '생년월']
-# result.to_csv(base_dir + 'preprocessed_data/' + date + 'icustays_preprocessd.csv')
+
 
 ''' =========================================== Read CSV files.... =========================================== '''
+# icustays csv file
+icustays_df = pd.read_csv(base_dir + 'origin_data/' + date + 'icustays.csv', index_col=0, encoding='cp949')
+icu_info = icustays_df[['real','not', '연구등록번호', '전입일시', '전출일시', '성별', '생년월']]
+icu_info.columns = ['pat_id', 'study_id', 'study_number', 'intime', 'outtime', 'sex', 'birth']
 
 # Observation csv file
 observation_df = pd.read_csv(base_dir + 'origin_data/' + date + 'observation.csv', index_col=0, encoding='cp949')
@@ -103,7 +102,8 @@ lab1 = pd.merge(lab_df, labtime_df, on=['sample_number', 'pat_id', 'study_id'])
 lab2 = pd.merge(lab2_df, labtime_df, on=['sample_number', 'pat_id', 'study_id'])
 # LAB1 + LAB2 concat
 lab_result = pd.concat([lab1, lab2], axis=0).sort_values(by=['pat_id', 'charttime'])
-lab_result = lab_result[['pat_id', 'study_id', 'item_code', 'item_name', 'charttime', 'value']]
+lab_result.iloc[:5,:].to_csv('./test.csv', encoding='cp949')
+lab_result = lab_result[['pat_id', 'study_id', 'study_number', 'item_code', 'item_name', 'charttime', 'value']]
 
 # Prescription csv file
 prescription_df = pd.read_csv(base_dir + 'origin_data/' + date + 'prescription.csv', index_col=0, encoding='cp949')
@@ -184,7 +184,7 @@ print(esrd_ckd)
 
 # O2 saturation - SpO2 (observation.csv : 관찰코드)
 spo2 = obs_result[obs_result['item_code'].isin(['2001100049'])].drop_duplicates()
-spo2 = spo2[['pat_id', 'study_id', 'item_code', 'item_name', 'charttime', 'value']]
+spo2 = spo2[['pat_id', 'study_id', 'study_number', 'item_code', 'item_name', 'charttime', 'value']]
 spo2['item'] = 'spo2'
 spo2.to_csv(dst_dir + 'variables/spo2.csv', encoding='cp949')
 print('========== SpO2 ==========')
@@ -192,7 +192,7 @@ print(spo2)
 
 # pO2 (lab.csv : 처방코드)
 pO2 = lab_result[lab_result['item_code'].isin(['L600103202'])].drop_duplicates()
-pO2 = pO2[['pat_id', 'study_id', 'item_code', 'item_name', 'charttime', 'value']]
+pO2 = pO2[['pat_id', 'study_id', 'study_number', 'item_code', 'item_name', 'charttime', 'value']]
 pO2['item'] = 'pO2'
 pO2.to_csv(dst_dir + 'variables/pO2.csv', encoding='cp949')
 print('========== pO2 ==========')
@@ -200,7 +200,7 @@ print(pO2)
 
 # pO2 (lab.csv : 처방코드)
 pCO2 = lab_result[lab_result['item_code'].isin(['L000102202'])].drop_duplicates()
-pCO2 = pCO2[['pat_id', 'study_id', 'item_code', 'item_name', 'charttime', 'value']]
+pCO2 = pCO2[['pat_id', 'study_id', 'study_number', 'item_code', 'item_name', 'charttime', 'value']]
 pCO2['item'] = 'pCO2'
 pCO2.to_csv(dst_dir + 'variables/pCO2.csv', encoding='cp949')
 print('========== pCO2 ==========')
@@ -208,7 +208,7 @@ print(pCO2)
 
 # PF_ratio (lab.csv : 처방코드)
 pf_ratio = lab_result[lab_result['item_code'].isin(['L600115202'])].drop_duplicates()
-pf_ratio = pf_ratio[['pat_id', 'study_id', 'item_code', 'item_name', 'charttime', 'value']]
+pf_ratio = pf_ratio[['pat_id', 'study_id', 'study_number', 'item_code', 'item_name', 'charttime', 'value']]
 pf_ratio['item'] = 'PF_ratio'
 pf_ratio.to_csv(dst_dir + 'variables/pf_ratio.csv', encoding='cp949')
 print('========== PF_ratio ==========')
@@ -216,7 +216,7 @@ print(pf_ratio)
 
 # Intubation (prescription.csv: 처방코드)
 intubation = pres_result[pres_result['item_code'].isin(['M5859_001', 'LX001_002'])].drop_duplicates()
-intubation = intubation[['pat_id', 'study_id', 'item_code', 'item_name', 'charttime']]
+intubation = intubation[['pat_id', 'study_id', 'study_number', 'item_code', 'item_name', 'charttime']]
 intubation['value'] = np.nan
 intubation['item'] = 'intubation'
 intubation.to_csv(dst_dir + 'variables/intubation.csv', encoding='cp949')
@@ -236,7 +236,7 @@ print(ventilator)
 
 # Extubatoin (prescription.csv : 처방코드)
 extubation = pres_result[pres_result['item_code'].isin(['5P002_036'])].drop_duplicates()
-extubation = extubation[['pat_id', 'study_id', 'item_code', 'item_name', 'charttime']]
+extubation = extubation[['pat_id', 'study_id', 'study_number', 'item_code', 'item_name', 'charttime']]
 extubation['value'] = np.nan
 extubation['item'] = 'extubation'
 extubation.to_csv(dst_dir + 'variables/extubation.csv', encoding='cp949')
@@ -253,6 +253,7 @@ print(extubation)
 # DataFrame 1
 
 df1 = pd.concat([Cr, pH, potassium, bun, uo, hemodialysis, spo2, pO2, pCO2, pf_ratio, intubation, extubation, ventilator], axis=0)
+df1 = pd.merge(df1, icu_info, on=['pat_id', 'study_id'])
 df1.to_csv(dst_dir + 'total_result.csv', encoding='cp949')
 
 

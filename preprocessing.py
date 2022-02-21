@@ -74,7 +74,7 @@ dst_dir = base_dir + 'preprocessed_data/' + date
 ''' =========================================== Read CSV files.... =========================================== '''
 # icustays csv file
 icustays_df = pd.read_csv(base_dir + 'origin_data/' + date + 'icustays.csv', index_col=0, encoding='cp949')
-icu_info = icustays_df[['real','not', '전입일시', '전출일시', '성별', '생년월']]
+icu_info = icustays_df[['real','not', '전입일시', '전출일시', '성별', '생년월']].reset_index(drop=True)
 icu_info.columns = ['pat_id', 'study_id', 'intime', 'outtime', 'sex', 'birth']
 
 # Observation csv file
@@ -123,129 +123,128 @@ surg_result.columns = ['pat_id', 'study_id', 'starttime', 'surgery_code', 'surge
 ''' =================================== Search Variables for Renal Failure =================================== '''
 
 # Creatinine (lab.csv : 처방코드)
-Cr = lab_result[lab_result['item_code'].isin(['C375002', '5B001_19', '5B00129' ])].drop_duplicates()
+Cr = lab_result[lab_result['item_name'].isin(['Creatinine[Serum]', 'Creatinine (2hr)[Serum]', 'Serum Creatini-ne for CCr[Serum]' ])].drop_duplicates()
 Cr['item'] = 'Creatinine'
-Cr.rename(columns={'value':'Cr'})
 Cr.to_csv(dst_dir + 'variables/Cr.csv', encoding='cp949')
 # print('========== Cr ==========')
 # print(Cr)
 
 # pH (lab.csv : 처방코드)
-pH = lab_result[lab_result['item_code'].isin(['L000101202', 'L008901201', 'L601007209', 'L600101202'])].drop_duplicates()
+pH = lab_result[lab_result['item_name'].isin(['pH[Arterial Whole blood]', 'pH[Venous Whole blood]', 'pH[Capillary blood]', 'pH[Arterial Whole blood]'])].drop_duplicates()
 pH['item'] = 'pH'
-pH.rename(columns={'value':'pH'})
 pH.to_csv(dst_dir + 'variables/pH.csv', encoding='cp949')
 # print('========== pH ==========')
 # print(pH)
 
 # potassium (lab.csv : 처방코드)
-potassium = lab_result[lab_result['item_code'].isin(['C379204'])].drop_duplicates()
+potassium = lab_result[lab_result['item_name'].isin(['K (Potassium)[Serum]'])].drop_duplicates()
 potassium['item'] = 'potassium'
-potassium.rename(columns={'value':'potassium'})
 potassium.to_csv(dst_dir + 'variables/potassium.csv', encoding='cp949')
 # print('========== potassium ==========')
 # print(potassium)
 
 # bun (lab.csv : 처방코드)
-bun = lab_result[lab_result['item_code'].isin(['C373001'])].drop_duplicates()
+bun = lab_result[lab_result['item_name'].isin(['BUN[Serum]'])].drop_duplicates()
 bun['item'] = 'BUN'
-bun.rename(columns={'value':'BUN'})
 bun.to_csv(dst_dir + 'variables/bun.csv', encoding='cp949')
 # print('========== bun ==========')
 # print(bun)
 
 # U/O (observation.csv : 임상관찰코드)
-uo = obs_result[obs_result['item_code'].isin(['4001600011'])].drop_duplicates()
+uo = obs_result[obs_result['item_name'].isin(['소변/Foley'])].drop_duplicates()
 uo['item'] = 'Urineoutput'
-uo.rename(columns={'value':'uo'})
 uo.to_csv(dst_dir + 'variables/uo.csv', encoding='cp949')
 # print('========== Urine Output ==========')
 # print(uo)
 
 # Hemodialysis (prescription.csv : 처방코드)
-hemodialysis = pres_result[pres_result['item_code'].isin(['YO7020B_004', 'V10P0021', 'V10P0045', 'V10P0022', 'V10P0026', 'V09G0057', 'V09G0059', 'V09G0246'])].drop_duplicates()
+hemodialysis = pres_result[pres_result['item_name'].isin([
+    'Hemodialysis', 'V10P0021 : Hemodialysis Cath 414002-JUGULAR 11.5FR 16CM (5EA/BOX)-30414-002 DUAL CVD/EA-COVIDIEN-(주)라온',
+    'Hemodialysis Cath 794009-JUGULAR 11.5FR 19.5CM (5EA/BOX-13794-009 DUAL CVD./EA-COVIDIEN-(주)라온', 'Hemodialysis G/W/EA-BARD REYNOSA',
+    'Hemodialysis Cath-6.5FR(1EA/1BOX)-소아용/EA-GAMBRO-박스터', 'Hemodialysis Cath-SUBCLAVIAN 20CM-DUAL STR./EA-BARD REYNOSA',
+    'Hemodialysis G/W 231001-J-TYPE (10EA/BOX)-13796-001/EA-COVIDIEN-(주)라온', 'Hemodialysis G/W-GDK-115J/EA-한국갬브로-박스터'])].drop_duplicates()
 hemodialysis['value'] = np.nan
 hemodialysis['item'] = 'hemodialysis'
-hemodialysis.rename(columns={'value':'dialysis'})
 hemodialysis.to_csv(dst_dir + 'variables/hemodialysis.csv', encoding='cp949')
 # print('========== Hemodialysis ==========')
 # print(hemodialysis)
 
 # ESRD + CKD (diagnosis.csv : 진단코드)
-esrd_ckd = diag_result[diag_result['diag_code'].isin(['DI024743', 'DI010115', 'DI050025', 'DI050026', 'DI050027', 'DI050028', 'DI050029', 'DI032358', 'DI045702', 'DI010107', 'DI010114', 'DI005316'])].drop_duplicates()
+esrd_ckd = diag_result[diag_result['diag_name'].isin([
+    'End stage renal disease (Hemodialysis)(혈액투석중인 말기신장병)', 'Chronic renal failure(만성 신장부전)', 'Chronic kidney disease  stage 1(만성 신장병(1기))',
+    'Chronic kidney disease  stage 2(만성 신장병(2기))', 'Chronic kidney disease  stage 3(만성 신장병(3기))', 'Chronic kidney disease  stage 4(만성 신장병(4기))',
+    'Chronic kidney disease  stage 5(만성 신장병(5기))', 'Chronic renal failure with exacerbation(만성신부전 악화)', 'Acute renal failure(급성 신부전)',
+    'Chronic kidney disease  unspecified(상세불명의 만성 신장병)', 'Other chronic renal failure(기타 만성 콩팥(신장)기능상실)',
+    'Chronic renal failure and hypertension(만성 신부전과 고혈압)'])].drop_duplicates()
 esrd_ckd['item'] = 'ESRD_CKD'
 esrd_ckd.to_csv(dst_dir + 'variables/hemodialysis.csv', encoding='cp949')
 # print('========== ESRD + CKD ==========')
 # print(esrd_ckd)
 
-
-
 ''' ================ Variables for Respiratory Failure ============'''
 
 # O2 saturation - SpO2 (observation.csv : 관찰코드)
-spo2 = obs_result[obs_result['item_code'].isin(['2001100049'])].drop_duplicates()
+spo2 = obs_result[obs_result['item_name'].isin(['Monitoring/SpO2'])].drop_duplicates()
 spo2 = spo2[['pat_id', 'study_id', 'item_code', 'item_name', 'charttime', 'value']]
 spo2['item'] = 'spo2'
-spo2.rename(columns={'value':'spo2'})
 spo2.to_csv(dst_dir + 'variables/spo2.csv', encoding='cp949')
 # print('========== SpO2 ==========')
 # print(spo2)
 
 # pO2 (lab.csv : 처방코드)
-pO2 = lab_result[lab_result['item_code'].isin(['L600103202'])].drop_duplicates()
+pO2 = lab_result[lab_result['item_name'].isin(['pO2[Arterial Whole blood]'])].drop_duplicates()
 pO2 = pO2[['pat_id', 'study_id', 'item_code', 'item_name', 'charttime', 'value']]
 pO2['item'] = 'pO2'
-pO2.rename(columns={'value':'pO2'})
 pO2.to_csv(dst_dir + 'variables/pO2.csv', encoding='cp949')
 # print('========== pO2 ==========')
 # print(pO2)
 
-# pO2 (lab.csv : 처방코드)
-pCO2 = lab_result[lab_result['item_code'].isin(['L000102202'])].drop_duplicates()
+# pCO2 (lab.csv : 처방코드)
+pCO2 = lab_result[lab_result['item_name'].isin(['pCO2[Arterial Whole blood]'])].drop_duplicates()
 pCO2 = pCO2[['pat_id', 'study_id', 'item_code', 'item_name', 'charttime', 'value']]
 pCO2['item'] = 'pCO2'
-pCO2.rename(columns={'value':'pCO2'})
 pCO2.to_csv(dst_dir + 'variables/pCO2.csv', encoding='cp949')
 # print('========== pCO2 ==========')
 # print(pCO2)
 
 # PF_ratio (lab.csv : 처방코드)
-pf_ratio = lab_result[lab_result['item_code'].isin(['L600115202'])].drop_duplicates()
+pf_ratio = lab_result[lab_result['item_code'].isin(['pO2/FIO2[Arterial Whole blood]'])].drop_duplicates()
 pf_ratio = pf_ratio[['pat_id', 'study_id', 'item_code', 'item_name', 'charttime', 'value']]
 pf_ratio['item'] = 'PF_ratio'
-pf_ratio.rename(columns={'value':'PF_ratio'})
 pf_ratio.to_csv(dst_dir + 'variables/pf_ratio.csv', encoding='cp949')
 # print('========== PF_ratio ==========')
 # print(pf_ratio)
 
 # Intubation (prescription.csv: 처방코드)
-intubation = pres_result[pres_result['item_code'].isin(['M5859_001', 'LX001_002'])].drop_duplicates()
+intubation = pres_result[pres_result['item_name'].isin(['Intubation', 'Intubation by Bronchoscopy'])].drop_duplicates()
 intubation = intubation[['pat_id', 'study_id', 'item_code', 'item_name', 'charttime']]
 intubation['value'] = np.nan
 intubation['item'] = 'intubation'
-intubation.rename(columns={'value':'ventilator'})
 intubation.to_csv(dst_dir + 'variables/intubation.csv', encoding='cp949')
 # print('========== Intubation ==========')
 # print(intubation)
 
 # Mechanical Ventilator (Observation.csv: 임상관찰코드)
-ventilator = obs_result[obs_result['item_code'].isin(['5003800023', '5003800009', '5003800010', '5003800006', '5003800008', '5003800005',
-                                                    '5003800013', '5003800014', '5003800011', '5003800001', '5003800004', '5003800028', 
-                                                    '5003800027', '5003800007', '5003800026', '5003800012', '5003800025', '5003800030',
-                                                    '5003800029', '5003800024', '5003800003', '5003800035', '5003800037'])].drop_duplicates()
+ventilator = obs_result[obs_result['item_name'].isin([
+    'Respiratory management/Ventilator 설정', 'Respiratory management/Ventilator_PSV(Setting)', 'Respiratory management/Ventilator_RR(Pt)',
+    'Respiratory management/Ventilator_PEEP', 'Respiratory management/Ventilator_PIP(Pt)', 'Respiratory management/Ventilator_Mv(Pt)',
+    'Respiratory management/Ventilator_Vt(Pt)', 'Respiratory management/Ventilator_Vt(setting)','Respiratory management/Ventilator_RR(Setting)',
+    'Respiratory management/Ventilator_IP(Setting)','Respiratory management/Ventilator_I:E(setting)', 'Respiratory management/Ventilator_Pressure Trigger',
+    'Respiratory management/Ventilator_Flow Trigger', 'Respiratory management/Ventilator_Mv(Setting)','Respiratory management/Ventilator_Plateau Pressure',
+    'Respiratory management/Ventilator_Stroke volume', 'Respiratory management/Ventilator 설정(Home)','Respiratory management/Ventilator_EPAP',
+    'Respiratory management/Ventilator_IPAP', 'Respiratory management/Ventilator 설정(NIV)','Respiratory management/Ventilator_MAP',
+    'Respiratory management/Ventilator_Mv(Setting: %)','Respiratory management/Ventilator 설정(Home NIV)'])].drop_duplicates()
 ventilator = ventilator[['pat_id', 'study_id', 'item_code', 'item_name', 'charttime', 'value']]
 ventilator['item'] = 'ventilator'
-ventilator.rename(columns={'value':'ventilator'})
 ventilator.to_csv(dst_dir + 'variables/ventilator.csv', encoding='cp949')
 # print('========== Ventilator ==========')
 # print(ventilator)
 
 # Extubatoin (prescription.csv : 처방코드)
-extubation = pres_result[pres_result['item_code'].isin(['5P002_036'])].drop_duplicates()
+extubation = pres_result[pres_result['item_name'].isin(['Extubation'])].drop_duplicates()
 extubation = extubation[['pat_id', 'study_id', 'item_code', 'item_name', 'charttime']]
 extubation['value'] = np.nan
 extubation['item'] = 'extubation'
-extubation.rename(columns={'value':'extubation'})
 extubation.to_csv(dst_dir + 'variables/extubation.csv', encoding='cp949')
 # print('========== Extubation ==========')
 # print(extubation)

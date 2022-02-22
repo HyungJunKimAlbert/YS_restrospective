@@ -23,10 +23,7 @@ observation=임상관찰,   prescription=처방,      surgery=수술
 # plist8 = list(set(surgery_df['real']))
 
 # final_plist = list(set(plist1 + plist2 + plist3 + plist4 + plist5 + plist6 + plist7))
-
 # print(len(final_plist))
-
-
 
 
 # 아래 코드는 필요한 변수만 추출하는 코드
@@ -57,7 +54,6 @@ observation=임상관찰,   prescription=처방,      surgery=수술
 
 - diagnosis.csv : 지역병원코드, 지역병원코드(코드명), 연구등록번호, 연구내원번호, 내원구분, 내원구분(코드명), 진료일자, 진료과, 진료과(코드명), 진료의Id, 
                     진료의Id(코드명), 진단코드, 진단코드(코드명), 진단일자, ICD-10 코드, ICD-10 코드(코드명), 성별, 성별(코드명), 진단시점나이, real, not
-
 
 - surgery.csv : 지역병원코드, 지역병원코드(코드명), 연구내원번호, 연구등록번호, 성별, 성별(코드명), 생년월, 수술일자, 수술시작일시, 주수술과주치의ID, 
                 주수술과주치의ID(코드명), 수술코드, 수술코드(코드명), 수술명(입력), ICD-9CM 코드, ICD-9CM 코드(코드명), 수술일련번호, real, not
@@ -120,6 +116,7 @@ surg_result.columns = ['pat_id', 'study_id', 'starttime', 'surgery_code', 'surge
 ''' ========================================================================================================= '''
 
 
+
 ''' =================================== Search Variables for Renal Failure =================================== '''
 
 # Creatinine (lab.csv : 처방코드)
@@ -177,7 +174,7 @@ esrd_ckd = diag_result[diag_result['diag_name'].isin([
     'Chronic kidney disease  unspecified(상세불명의 만성 신장병)', 'Other chronic renal failure(기타 만성 콩팥(신장)기능상실)',
     'Chronic renal failure and hypertension(만성 신부전과 고혈압)'])].drop_duplicates()
 esrd_ckd['item'] = 'ESRD_CKD'
-esrd_ckd.to_csv(dst_dir + 'variables/hemodialysis.csv', encoding='cp949')
+esrd_ckd.to_csv(dst_dir + 'variables/esrd_result.csv', encoding='cp949')
 # print('========== ESRD + CKD ==========')
 # print(esrd_ckd)
 
@@ -208,7 +205,7 @@ pCO2.to_csv(dst_dir + 'variables/pCO2.csv', encoding='cp949')
 # print(pCO2)
 
 # PF_ratio (lab.csv : 처방코드)
-pf_ratio = lab_result[lab_result['item_code'].isin(['pO2/FIO2[Arterial Whole blood]'])].drop_duplicates()
+pf_ratio = lab_result[lab_result['item_name'].isin(['pO2/FIO2[Arterial Whole blood]'])].drop_duplicates()
 pf_ratio = pf_ratio[['pat_id', 'study_id', 'item_code', 'item_name', 'charttime', 'value']]
 pf_ratio['item'] = 'PF_ratio'
 pf_ratio.to_csv(dst_dir + 'variables/pf_ratio.csv', encoding='cp949')

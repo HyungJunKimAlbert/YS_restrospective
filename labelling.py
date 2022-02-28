@@ -17,6 +17,8 @@ icuinfo_df = pd.read_csv(data_dir + 'icu_info.csv', encoding='cp949', index_col=
 surg_df = pd.read_csv(data_dir + 'surg_result.csv', encoding='cp949', index_col=0, parse_dates=['starttime'])
 surg_df = surg_df[['pat_id', 'study_id', 'starttime', 'ICD9']]
 esrd_df = pd.read_csv(data_dir + 'esrd_result.csv', encoding='cp949', index_col=0, parse_dates=['diag_date'])
+cam_df = pd.read_csv(data_dir + 'cam_icu_result.csv', encoding='cp949', index_col=0, parse_dates=['time'])
+
 
 ''' data_df DataFrame
 # keys : ['pat_id', 'study_id', 'item_code', 'item_name', 'charttime', 'value','item']
@@ -343,5 +345,42 @@ def renal_failure():
     print(len(esrd_list))
 
 
+
+def delirium():
+
+    # CAM Tatal patients : 2,335
+
+    # Total 39,567
+    cam_tmp = cam_df[['real', 'time', 'rass', '1', '2', '3', '4']]
+    cam_tmp = cam_tmp.rename(columns={'real':'pat_id', 'time': 'charttime'})
+    
+    # Total 24,956 (Rass > -4)
+    data_df = cam_tmp[cam_tmp['rass']>-4].copy().reset_index(drop=True)
+    data_df['idx'] = range(0, len(data_df))
+
+    # CAM-ICU Encoding (positive=1, Negative=0)
+    cam_123_pos = data_df[(data_df['1'].str.slice(stop=2)=='양성') & (data_df['2'].str.slice(stop=2)=='양성') & (data_df['3'].str.slice(stop=2)=='양성')].copy()
+    cam_124_pos = data_df[(data_df['1'].str.slice(stop=2)=='양성') & (data_df['2'].str.slice(stop=2)=='양성') & (data_df['4'].str.slice(stop=2)=='양성')].copy()
+    cam_124_neg = data_df[(data_df['1'].str.slice(stop=2)=='음성') | (data_df['2'].str.slice(stop=2)=='음성') | (data_df['4'].str.slice(stop=2)=='음성')].copy()
+
+    # Pos : 10,371
+    case = pd.concat([cam_123_pos,cam_124_pos], axis=0).drop_duplicates()   # 특성 1,2,3,4가 모두 양성인 경우가 있어서 중복되는 경우가 발생함. (2072건)
+    case = case[['pat_id', 'charttime', 'idx']]
+    case['delirium'] = 1
+
+    # Neg : 11,722
+    control = cam_124_neg
+    control = control[['pat_id', 'charttime', 'idx']]
+    control = control[~control['idx'].isin(case['idx'])]    # 일부 환자에서 특성 1,2,3 에서 양성인데, 특성 4에서 음성인 경우가 있어서 이 경우 control에서 제외해야 함. (170건)
+    control['delirium'] = 0
+
+    # Total 22,093
+    final_result = pd.concat([case, control], axis=0)
+#     final_result.to_csv('./test.csv')
+
+    final_result = final_result[['pat_id', 'charttime', 'delirium']]
+    final_result.to_csv('./delirium.csv', encoding='cp949')
+
 resp_failure()
 # renal_failure()
+# delirium()    

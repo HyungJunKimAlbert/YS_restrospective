@@ -193,13 +193,26 @@ def resp_failure():
     filtered_result = pd.concat([filtered_result, mv_final], axis=0).drop_duplicates().sort_values(by=['pat_id', 'charttime'])
     filtered_result = filtered_result.rename(columns={'charttime':'starttime'}).reset_index(drop=True)
 
-    # 수술로 인한 Ventilator 인 경우 전부 -1로 & ICU 입실후 30분 이내에 MV 착용한 환자들의 입실 30분 이내 모든 라벨을 -1로 변경
+    #  ICU 입실후 30분 이내에 MV 착용한 환자들의 입실 30분 이내 모든 라벨을 -1로 변경
+    surgtmp = surg_patient[['pat_id', 'study_id', 'intime', 'outtime', 'starttime']].drop_duplicates()
+
     for idx in tqdm.tqdm(range(len(filtered_result))):
         pid = filtered_result['pat_id'][idx]
         ch_time = filtered_result['starttime'][idx]
 
-        # print('pid: ',  pid, 'charttime: ', ch_time)
+        # 수술로 인한 Ventilator 인 경우 전부 -1로
+        surgtmp2 = surgtmp[surgtmp['pat_id']==pid].reset_index(drop=True)
+
+        for s_idx in range(len(surgtmp2)):
+
+            intime = surgtmp2['intime'][s_idx]
+            outtime = surgtmp2['outtime'][s_idx]
+
+            if (ch_time >= intime) & (ch_time <= outtime):
+                filtered_result['resp_failure'][idx] = -1
+
         tmp = under_30[under_30['pat_id']==pid].reset_index(drop=True)   # icustays.csv 내에 존재하는 pat_id 데이터 전부 조회
+        
         if len(tmp) > 0:
             # 1개의 pat_id 에 여러 icu 입실기간이 있으므로, 모든 icu 입실기간의 intime & outtime 조회하여 이벤트 발생시각이 존재하는 경우 최종 라벨(filtered_result)에 추가함.
             for k in range(len(tmp)):
@@ -209,9 +222,7 @@ def resp_failure():
                 if (ch_time >= intime) & (ch_time <= intime_plus30):
                     filtered_result['resp_failure'][idx] = -1
         else:
-            continue
-
-    
+            continue   
 
     filtered_result.to_csv('./resp_failure.csv')
 

@@ -20,9 +20,10 @@
 
   - 2/28 기준 섬망 라벨링 완료
   
-      - Case 환자: 905명(10,371건)
-      - Control 환자: 1,726명 (11,722건)
+      - Case 환자: 887명(10,218건)
+      - Control 환자: 1,711명 (11,362건)
       - UTA: 2,863건
+      - ICU 입실기간 외에 측정 : 512건 (Pos 153건(18명), Neg 361건(15명))
       - RASS <= -4 : 14,611건
 
 * Cr_baseline.py : Creatinine 의 baseline 추출하는 코드 (+ U/O Criteria, Dialysis 추출 코드 포함)

@@ -17,6 +17,9 @@ icuinfo_df = pd.read_csv(data_dir + 'icu_info.csv', encoding='cp949', index_col=
 surg_df = pd.read_csv(data_dir + 'surg_result.csv', encoding='cp949', index_col=0, parse_dates=['starttime'])
 surg_df = surg_df[['pat_id', 'study_id', 'starttime', 'ICD9']]
 esrd_df = pd.read_csv(data_dir + 'esrd_result.csv', encoding='cp949', index_col=0, parse_dates=['diag_date'])
+esrd_df = esrd_df[['pat_id', 'diag_date']].sort_values(['pat_id', 'diag_date'])
+esrd_df = esrd_df.groupby('pat_id').head(1).reset_index(drop=True)
+
 cam_df = pd.read_csv(data_dir + 'camicu_result.csv', encoding='utf-8', index_col=0, parse_dates=['time'])
 
 ''' data_df DataFrame
@@ -212,7 +215,7 @@ def resp_failure():
                 filtered_result['resp_failure'][idx] = -1
 
         tmp = under_30[under_30['pat_id']==pid].reset_index(drop=True)   # icustays.csv 내에 존재하는 pat_id 데이터 전부 조회
-        
+
         if len(tmp) > 0:
             # 1개의 pat_id 에 여러 icu 입실기간이 있으므로, 모든 icu 입실기간의 intime & outtime 조회하여 이벤트 발생시각이 존재하는 경우 최종 라벨(filtered_result)에 추가함.
             for k in range(len(tmp)):
@@ -354,23 +357,24 @@ def renal_failure():
             dialysis_time = tmp_dialysis['starttime'][0]
 
             if dialysis_time < in_time:
-                filtered_rf['renal_failure'][idx] == -1
+                filtered_rf['renal_failure'][idx] = -1
             elif dialysis_time < st_time:
                 filtered_rf['starttime'][idx] = dialysis_time
             else:
                 continue
 
         # ERSD + CKD 환자가 신부전 Starttime 이전에 진단받은 경우는 제외
-        tmp_esrd = esrd_df[esrd_df['pat_id']==pid].sort_values(['pat_id', 'diag_date']).reset_index(drop=True)
+        tmp_esrd = esrd_df[esrd_df['pat_id']==pid].reset_index(drop=True)
         if len(tmp_esrd) > 0:
             diag_date = tmp_esrd['diag_date'][0]
 
             if diag_date < st_time: # esrd 진단시점이 renal failure 첫시점보다 이전인 경우 -1로 라벨링
                 esrd_list.append(pid)
-                filtered_rf['renal_failure'][idx] == -1
+                filtered_rf['renal_failure'][idx] = -1
 
     filtered_rf.to_csv('./renal_failure.csv', encoding='cp949')
     print(len(esrd_list))
+    print(esrd_list)
 
 
 
@@ -390,12 +394,12 @@ def delirium():
     cam_124_pos = data_df[(data_df['1'].str.slice(stop=2)=='양성') & (data_df['2'].str.slice(stop=2)=='양성') & (data_df['4'].str.slice(stop=2)=='양성')].copy()
     cam_124_neg = data_df[(data_df['1'].str.slice(stop=2)=='음성') | (data_df['2'].str.slice(stop=2)=='음성') | (data_df['4'].str.slice(stop=2)=='음성')].copy()
 
-    # Pos : 10,371
+    # Pos : 10,218
     case = pd.concat([cam_123_pos,cam_124_pos], axis=0).drop_duplicates()   # 특성 1,2,3,4가 모두 양성인 경우가 있어서 중복되는 경우가 발생함. (2072건)
     case = case[['pat_id', 'starttime', 'idx']]
     case['delirium'] = 1
 
-    # Neg : 11,722
+    # Neg : 11,362
     control = cam_124_neg
     control = control[['pat_id', 'starttime', 'idx']]
     control = control[~control['idx'].isin(case['idx'])]    # 일부 환자에서 특성 1,2,3 에서 양성인데, 특성 4에서 음성인 경우가 있어서 이 경우 control에서 제외해야 함. (170건)
@@ -431,6 +435,6 @@ def delirium():
 
     filtered_delirium.to_csv('./delirium.csv', encoding='cp949')
 
-resp_failure()
-# renal_failure()
+# resp_failure()
+renal_failure()
 # delirium()    

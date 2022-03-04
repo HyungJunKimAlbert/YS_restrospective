@@ -17,8 +17,7 @@ icuinfo_df = pd.read_csv(data_dir + 'icu_info.csv', encoding='cp949', index_col=
 surg_df = pd.read_csv(data_dir + 'surg_result.csv', encoding='cp949', index_col=0, parse_dates=['starttime'])
 surg_df = surg_df[['pat_id', 'study_id', 'starttime', 'ICD9']]
 esrd_df = pd.read_csv(data_dir + 'esrd_result.csv', encoding='cp949', index_col=0, parse_dates=['diag_date'])
-cam_df = pd.read_csv(data_dir + 'cam_icu_result.csv', encoding='cp949', index_col=0, parse_dates=['time'])
-
+cam_df = pd.read_csv(data_dir + 'camicu_result.csv', encoding='utf-8', index_col=0, parse_dates=['time'])
 
 ''' data_df DataFrame
 # keys : ['pat_id', 'study_id', 'item_code', 'item_name', 'charttime', 'value','item']
@@ -141,7 +140,7 @@ def resp_failure():
 
     # Add MV onset time column
     filtered_mv['onset_time'] = (filtered_mv.charttime - filtered_mv.intime).dt.total_seconds() // 60
-    filtered_mv = filtered_mv[['pat_id', 'study_id', 'charttime', 'resp_failure', 'onset_time']]
+    filtered_mv = filtered_mv[['pat_id', 'study_id', 'charttime', 'resp_failure', 'intime', 'outtime', 'onset_time']]
 
     # # 입실 후 30분 이내 MV 착용한 환자
     under_30 = filtered_mv[filtered_mv['onset_time'] <= 30]   ## under 30 minutes : 122 
@@ -179,7 +178,6 @@ def resp_failure():
     surg_patient = surg_tmp[surg_tmp.mv_for_surg]
     print(surg_patient)
 
-
     # exclude mv
     exclude_1 = list(set(under_30['pat_id']))           # 입실 30분 이내 mv 착용환자
     exclude_2 =  list(set(surg_patient['pat_id']))      # 입실기간동안 수술로 인한 mv 착용환자
@@ -190,11 +188,31 @@ def resp_failure():
     mv = filtered_mv[~filtered_mv['pat_id'].isin(exclude_1 + exclude_2)]
     mv_final = pd.concat([mv, mv_ex], axis=0)
     mv_final = mv_final[['pat_id', 'study_id', 'charttime', 'resp_failure']]
-    print(mv_final)
 
     # LAB  +  Mechanical Ventilator
     filtered_result = pd.concat([filtered_result, mv_final], axis=0).drop_duplicates().sort_values(by=['pat_id', 'charttime'])
-    filtered_result = filtered_result.rename(columns={'charttime':'starttime'})
+    filtered_result = filtered_result.rename(columns={'charttime':'starttime'}).reset_index(drop=True)
+
+    # 수술로 인한 Ventilator 인 경우 전부 -1로 & ICU 입실후 30분 이내에 MV 착용한 환자들의 입실 30분 이내 모든 라벨을 -1로 변경
+    for idx in tqdm.tqdm(range(len(filtered_result))):
+        pid = filtered_result['pat_id'][idx]
+        ch_time = filtered_result['starttime'][idx]
+
+        # print('pid: ',  pid, 'charttime: ', ch_time)
+        tmp = under_30[under_30['pat_id']==pid].reset_index(drop=True)   # icustays.csv 내에 존재하는 pat_id 데이터 전부 조회
+        if len(tmp) > 0:
+            # 1개의 pat_id 에 여러 icu 입실기간이 있으므로, 모든 icu 입실기간의 intime & outtime 조회하여 이벤트 발생시각이 존재하는 경우 최종 라벨(filtered_result)에 추가함.
+            for k in range(len(tmp)):
+                intime = tmp['intime'][k]
+                intime_plus30 = intime + timedelta(minutes=30)
+
+                if (ch_time >= intime) & (ch_time <= intime_plus30):
+                    filtered_result['resp_failure'][idx] = -1
+        else:
+            continue
+
+    
+
     filtered_result.to_csv('./resp_failure.csv')
 
 
@@ -251,7 +269,6 @@ def renal_failure():
     lab_criteria = data[data.criteria_1to4]
     lab_criteria = lab_criteria.iloc[:, :-5]
 
-
     '''  Urine output criteria  '''
     # Urine output Criteria (추출 코드는 Cr_baseline.py 내에 있음.)
 
@@ -264,8 +281,8 @@ def renal_failure():
         pid = uo_criteria['pat_id'][idx]
         ch_time = uo_criteria['starttime'][idx]    # Urine output 6시간동안 180 미만인 경우를 만족하는 경우임
 
-        before_3h = ch_time - timedelta(hours=12)
-        after_3h = ch_time + timedelta(hours=12)
+        before_3h = ch_time - timedelta(hours=3)
+        after_3h = ch_time + timedelta(hours=3)
 
         lab_tmp = lab_criteria[(lab_criteria['pat_id']==pid) & 
                                 (lab_criteria['charttime'] >= before_3h) & 
@@ -331,7 +348,7 @@ def renal_failure():
                 filtered_rf['starttime'][idx] = dialysis_time
             else:
                 continue
-    # 11 12
+
         # ERSD + CKD 환자가 신부전 Starttime 이전에 진단받은 경우는 제외
         tmp_esrd = esrd_df[esrd_df['pat_id']==pid].sort_values(['pat_id', 'diag_date']).reset_index(drop=True)
         if len(tmp_esrd) > 0:
@@ -341,7 +358,7 @@ def renal_failure():
                 esrd_list.append(pid)
                 filtered_rf['renal_failure'][idx] == -1
 
-    filtered_rf.to_csv('./renal_failure_12h.csv', encoding='cp949')
+    filtered_rf.to_csv('./renal_failure.csv', encoding='cp949')
     print(len(esrd_list))
 
 
@@ -349,10 +366,9 @@ def renal_failure():
 def delirium():
 
     # CAM Tatal patients : 2,335
-
     # Total 39,567
-    cam_tmp = cam_df[['real', 'time', 'rass', '1', '2', '3', '4']]
-    cam_tmp = cam_tmp.rename(columns={'real':'pat_id', 'time': 'charttime'})
+    cam_tmp = cam_df[['pid', 'time', 'rass', '1', '2', '3', '4']]
+    cam_tmp = cam_tmp.rename(columns={'pid':'pat_id', 'time': 'starttime'})
     
     # Total 24,956 (Rass > -4)
     data_df = cam_tmp[cam_tmp['rass']>-4].copy().reset_index(drop=True)
@@ -365,12 +381,12 @@ def delirium():
 
     # Pos : 10,371
     case = pd.concat([cam_123_pos,cam_124_pos], axis=0).drop_duplicates()   # 특성 1,2,3,4가 모두 양성인 경우가 있어서 중복되는 경우가 발생함. (2072건)
-    case = case[['pat_id', 'charttime', 'idx']]
+    case = case[['pat_id', 'starttime', 'idx']]
     case['delirium'] = 1
 
     # Neg : 11,722
     control = cam_124_neg
-    control = control[['pat_id', 'charttime', 'idx']]
+    control = control[['pat_id', 'starttime', 'idx']]
     control = control[~control['idx'].isin(case['idx'])]    # 일부 환자에서 특성 1,2,3 에서 양성인데, 특성 4에서 음성인 경우가 있어서 이 경우 control에서 제외해야 함. (170건)
     control['delirium'] = 0
 
@@ -378,8 +394,31 @@ def delirium():
     final_result = pd.concat([case, control], axis=0)
 #     final_result.to_csv('./test.csv')
 
-    final_result = final_result[['pat_id', 'charttime', 'delirium']]
-    final_result.to_csv('./delirium.csv', encoding='cp949')
+    final_result = final_result[['pat_id', 'starttime', 'delirium']].reset_index(drop=True)
+
+    # ICU 입실기간내에 발생한 이벤트인지 Check
+    filtered_delirium= pd.DataFrame()
+    intime_list = []
+    outtime_list = []
+
+    for idx in tqdm.tqdm(range(len(final_result))):
+        pid = final_result['pat_id'][idx]
+        ch_time = final_result['starttime'][idx]
+        # print('pid: ',  pid, 'charttime: ', ch_time)
+        tmp = icuinfo_df[icuinfo_df['pat_id']==pid].reset_index(drop=True)   # icustays.csv 내에 존재하는 pat_id 데이터 전부 조회
+
+        # 1개의 pat_id 에 여러 icu 입실기간이 있으므로, 모든 icu 입실기간의 intime & outtime 조회하여 이벤트 발생시각이 존재하는 경우 최종 라벨(filtered_result)에 추가함.
+        for k in range(len(tmp)):
+            intime = tmp['intime'][k]
+            outtime = tmp['outtime'][k]
+
+            if (ch_time >= intime) & (ch_time <= outtime):
+                filtered_delirium = filtered_delirium.append(final_result.iloc[idx])
+                intime_list.append(intime)
+                outtime_list.append(outtime)
+
+
+    filtered_delirium.to_csv('./delirium.csv', encoding='cp949')
 
 resp_failure()
 # renal_failure()

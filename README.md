@@ -8,6 +8,8 @@
 
 * preprocessing.py : 사용할 item_code 만 선택해서 필요한 데이터만 추출하고, 통일된 column(key)의 DataFrame으로 추출하는 코드
 
+* multilabel_filtering.py : 멀티라벨링 결과에서 intime-outtime 내에 있는 시점만 추출하는 코드
+
 * labelling.py : 전처리된 데이터 활용해서 각 질환별 라벨링 추출하는 코드 
   - 2/22 기준 호흡부전 라벨링 완료
 
@@ -40,3 +42,14 @@
 
       - Total Events : Delirium (Pos 10,394, Neg 36,297) , Renal Failue (Pos 1,610, Neg 85,876), RESP Failure (Pos 33,778, Neg 533,58)
       - Excluded Events : Delirium (UTA 41,126) , Renal Failue (331), RESP Failure (681)
+
+
+  - 후향적 데이터 최종 멀티라벨링 파일
+
+      - intime 이전에 랜덤하게 추출된 경우 제외 (Ex: 입실 40분 후에 발생한 이벤트의 경우, 직전 3시간동안의 시점을 임의추출하므로, ICU 입실 전 시점이 추출됨.)
+      - ICU 입실기간내에 있는 경우만 추출한 결과
+          
+         - Total Timepoints : 66,310
+         - Total Events : Delirium (Pos 7,256, Neg 24,870) , Renal Failue (Pos 526, Neg 65,719), RESP Failure (Pos 26,207, Neg 39,947)
+         - Excluded Events : Delirium (UTA 34,184) , Renal Failue (65), RESP Failure (156)
+

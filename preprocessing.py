@@ -4,10 +4,13 @@ import warnings
 warnings.filterwarnings('ignore')
 
 
+
 ''' Table mapping
 icustays = 환자 입실정보, lab=검사결과,   lab2=검사결과2,     labtime=검사결과채혈시간,   diagnosis=상병,     drugtime=약주사시행,   
 observation=임상관찰,   prescription=처방,      surgery=수술
 '''
+
+
 
 # 전체 환자수 조회 (Total patientid : 2558)
 # plist1 = list(set(lab_df['real']))
@@ -54,7 +57,10 @@ observation=임상관찰,   prescription=처방,      surgery=수술
 
 - surgery.csv : 지역병원코드, 지역병원코드(코드명), 연구내원번호, 연구등록번호, 성별, 성별(코드명), 생년월, 수술일자, 수술시작일시, 주수술과주치의ID, 
                 주수술과주치의ID(코드명), 수술코드, 수술코드(코드명), 수술명(입력), ICD-9CM 코드, ICD-9CM 코드(코드명), 수술일련번호, real, not
+
+
 '''
+
 
 base_dir = 'C:/Users/User5/Desktop/github/YS_labelling/'
 date = '220217/'

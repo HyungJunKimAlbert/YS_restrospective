@@ -240,7 +240,7 @@ def renal_failure():
     Cr = data_df[data_df['item']=='Creatinine'].iloc[:, :-1].sort_values(by=['pat_id', 'charttime']).reset_index(drop=True)
     Cr = Cr.rename(columns={'value':'Cr'})
 
-    # CR baseline
+    # CR baseline   
     Cr_base = pd.read_csv(data_dir + 'Cr_baseline.csv', index_col=0, encoding='cp949')
 
     # pH
@@ -248,8 +248,9 @@ def renal_failure():
     pH = pH.rename(columns={'value':'pH'})
 
     # BUN
-    bun = data_df[data_df['item']=='bun'].iloc[:, :-1].sort_values(by=['pat_id', 'charttime']).reset_index(drop=True)
+    bun = data_df[data_df['item']=='BUN'].iloc[:, :-1].sort_values(by=['pat_id', 'charttime']).reset_index(drop=True)
     bun = bun.rename(columns={'value':'bun'})
+    bun = bun.astype({'bun':'float'})
 
     # Potassium
     potassium = data_df[data_df['item']=='potassium'].iloc[:, :-1].sort_values(by=['pat_id', 'charttime']).reset_index(drop=True)
@@ -271,8 +272,8 @@ def renal_failure():
         sCr_list.append(cr_bs)
     data['sCr'] = sCr_list
 
-
     # data = data.astype({'po2' : 'float', 'pco2' : 'float', 'pf_ratio' : 'float','spo2' : 'float'})  # type casting
+
 
     data['criteria_cr'] = data.Cr >= data.sCr*2
     data['criteria_po'] = data.potassium >= 6
@@ -282,6 +283,7 @@ def renal_failure():
 
     lab_criteria = data[data.criteria_1to4]
     lab_criteria = lab_criteria.iloc[:, :-5]
+    lab_criteria.to_csv('./lab_criteria.csv')
 
     '''  Urine output criteria  '''
     # Urine output Criteria (추출 코드는 Cr_baseline.py 내에 있음.)
@@ -289,22 +291,24 @@ def renal_failure():
     uo_criteria = pd.read_csv(data_dir + 'uo_criteria.csv', index_col=0, parse_dates=['charttime']).reset_index(drop=True)
     uo_criteria = uo_criteria.rename(columns={'charttime':'starttime'})
 
+
     final_criteria = pd.DataFrame() # Urine output + 앞뒤 x 시간 이내 랩조건 만족하는 경우
 
     for idx, value in tqdm.tqdm(uo_criteria.iterrows()):
         pid = uo_criteria['pat_id'][idx]
         ch_time = uo_criteria['starttime'][idx]    # Urine output 6시간동안 180 미만인 경우를 만족하는 경우임
-
         before_3h = ch_time - timedelta(hours=3)
-        after_3h = ch_time + timedelta(hours=3)
+        after_3h = ch_time + timedelta(hours=9)
+
 
         lab_tmp = lab_criteria[(lab_criteria['pat_id']==pid) & 
                                 (lab_criteria['charttime'] >= before_3h) & 
                                 (lab_criteria['charttime'] <= after_3h)]
+
         if len(lab_tmp) > 0:
             final_criteria = final_criteria.append(uo_criteria.iloc[idx])
 
-    final_criteria = final_criteria.reset_index(drop=True)
+        final_criteria = final_criteria.reset_index(drop=True)
 
 
     # ICU 입실기간내에 발생한 이벤트인지 Check
@@ -384,6 +388,9 @@ def delirium():
     # Total 39,567
     cam_tmp = cam_df[['pid', 'time', 'rass', '1', '2', '3', '4']]
     cam_tmp = cam_tmp.rename(columns={'pid':'pat_id', 'time': 'starttime'})
+
+    # icuinfo_dataframe에 있는 CAM-ICU만 추출
+    cam_tmp = cam_tmp[cam_tmp['pat_id'].isin(list(set(icuinfo_df['pat_id'])))]
     
     # Total 24,956 (Rass > -4)
     data_df = cam_tmp[cam_tmp['rass']>-4].copy().reset_index(drop=True)
@@ -433,8 +440,43 @@ def delirium():
                 outtime_list.append(outtime)
 
 
-    filtered_delirium.to_csv('./delirium.csv', encoding='cp949')
+
+    case = filtered_delirium[filtered_delirium['delirium']==1].reset_index(drop=True)
+    control_result = filtered_delirium[filtered_delirium['delirium']==0].reset_index(drop=True)
+
+    case_result = pd.DataFrame()
+    case = case.sort_values(['pat_id', 'starttime'])
+
+    plist = list(set(case['pat_id']))
+
+    for pid in tqdm.tqdm(plist):
+        tmp_df = case[case['pat_id']==pid].reset_index(drop=True)
+
+        # 하루에 3번 측정하므로, 6번 미만 측정한 환자는 2일 미만 ==> 전부 활용
+        if len(tmp_df) <= 6: 
+            case_result = case_result.append(tmp_df)
+        else:
+            st_time = tmp_df['starttime'][0]
+            end_time = st_time + timedelta(hours=48)
+
+            case_result = case_result.append(tmp_df.iloc[0])  # 제일 첫 이벤트 추가
+
+            # 다음 이벤트부터는 48시간이내에 있으면 pass, 그 이후면 다시 48시간 이후 ch_time을 기준으로 48시간 간격마다 추출
+            for i in range(len(tmp_df)):                        
+                ch_time = tmp_df['starttime'][i]
+
+                if (ch_time >= st_time) and (ch_time <= end_time):  # 라벨이 sttime 기준 48시간 이내에 있는 경우 pass
+                    continue
+                else:                                               # 48시간 이후에 있는 경우 1개 추가
+                    st_time = ch_time
+                    end_time = st_time + timedelta(hours=48)
+                    case_result = case_result.append(tmp_df.iloc[i])
+
+    final_result2 = pd.concat([case_result, control_result], axis=0)
+    final_result2 = final_result2.reset_index(drop=True)
+
+    final_result2.to_csv('./delirium.csv', encoding='cp949')
 
 # resp_failure()
-renal_failure()
-# delirium()    
+# renal_failure()
+delirium()    

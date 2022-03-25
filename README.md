@@ -30,7 +30,7 @@
 
 * Cr_baseline.py : Creatinine 의 baseline 추출하는 코드 (+ U/O Criteria, Dialysis 추출 코드 포함)
 
-* Multi_label.py : 이벤트 시점을 기준으로 랜덤하게 3개의 시점 추출한 뒤, 임의로 추출된 Timepoints를 활용하여 멀티라벨링을 추출하는 코드
+* Multi_label.py : 모든 환자의 ICU intime-outtime 기간동안 1시간 단위의 시점의 멀티라벨링을 추출하는 코드
 
   - 3/11 기준 Random_Timestamp 추출 완료
   
